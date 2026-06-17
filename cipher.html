@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cipher Toolkit</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#1e3c72,#2a5298);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+.container{
+    width:900px;
+    max-width:100%;
+    background:white;
+    border-radius:15px;
+    padding:25px;
+    box-shadow:0 10px 30px rgba(0,0,0,.3);
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+    color:#1e3c72;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+label{
+    font-weight:bold;
+    margin-bottom:5px;
+    display:block;
+}
+
+textarea,input,select{
+    width:100%;
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:8px;
+}
+
+textarea{
+    resize:vertical;
+    min-height:120px;
+}
+
+.controls{
+    margin-top:15px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+button{
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    color:white;
+    font-weight:bold;
+}
+
+.encrypt{
+    background:#28a745;
+}
+
+.decrypt{
+    background:#dc3545;
+}
+
+.copy{
+    background:#007bff;
+}
+
+.result{
+    margin-top:20px;
+}
+
+.info{
+    margin-top:15px;
+    padding:12px;
+    background:#f3f6fa;
+    border-left:4px solid #1e3c72;
+    border-radius:8px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔐 Cipher Toolkit</h1>
+
+    <div class="grid">
+        <div>
+            <label>Choose Cipher</label>
+            <select id="cipher">
+                <option>Caesar Cipher</option>
+                <option>Monoalphabetic Cipher</option>
+                <option>Vigenere Cipher</option>
+                <option>Rail Fence Cipher</option>
+                <option>Atbash Cipher</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Key / Shift</label>
+            <input type="text" id="key" placeholder="Shift, keyword, rails, alphabet key">
+        </div>
+    </div>
+
+    <br>
+
+    <label>Input Text</label>
+    <textarea id="input"></textarea>
+
+    <div class="controls">
+        <button class="encrypt" onclick="process('encrypt')">
+            Encrypt
+        </button>
+
+        <button class="decrypt" onclick="process('decrypt')">
+            Decrypt
+        </button>
+
+        <button class="copy" onclick="copyResult()">
+            Copy Result
+        </button>
+    </div>
+
+    <div class="result">
+        <label>Output</label>
+        <textarea id="output" readonly></textarea>
+    </div>
+
+    <div class="info">
+        <b>Algorithms:</b> Caesar, Monoalphabetic, Vigenère, Rail Fence, Atbash
+    </div>
+</div>
+
+<script>
+
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+/* =====================
+   Caesar Cipher
+===================== */
+function caesar(text, shift){
+    shift=((shift%26)+26)%26;
+
+    return text.replace(/[a-z]/gi,ch=>{
+        const base = ch===ch.toUpperCase()?65:97;
+        return String.fromCharCode(
+            ((ch.charCodeAt(0)-base+shift)%26)+base
+        );
+    });
+}
+
+/* =====================
+   Monoalphabetic Cipher
+===================== */
+
+function monoEncrypt(text,key){
+
+    key=key.toUpperCase();
+
+    if(key.length!==26){
+        alert("Monoalphabetic key must contain 26 letters.");
+        return "";
+    }
+
+    return text.replace(/[A-Z]/gi,ch=>{
+        let upper=ch.toUpperCase();
+        let idx=alphabet.indexOf(upper);
+        let mapped=key[idx];
+        return ch===ch.toLowerCase()
+        ? mapped.toLowerCase()
+        : mapped;
+    });
+}
+
+function monoDecrypt(text,key){
+
+    key=key.toUpperCase();
+
+    return text.replace(/[A-Z]/gi,ch=>{
+        let upper=ch.toUpperCase();
+        let idx=key.indexOf(upper);
+        let mapped=alphabet[idx];
+
+        return ch===ch.toLowerCase()
+        ? mapped.toLowerCase()
+        : mapped;
+    });
+}
+
+/* =====================
+   Vigenere Cipher
+===================== */
+
+function vigenere(text,key,mode){
+
+    key=key.toUpperCase().replace(/[^A-Z]/g,'');
+
+    if(!key.length) return text;
+
+    let result="";
+    let j=0;
+
+    for(let char of text){
+
+        if(/[A-Za-z]/.test(char)){
+
+            let base=char===char.toUpperCase()?65:97;
+            let shift=key[j%key.length].charCodeAt(0)-65;
+
+            if(mode==="decrypt")
+                shift=-shift;
+
+            result+=String.fromCharCode(
+                ((char.charCodeAt(0)-base+shift+26)%26)+base
+            );
+
+            j++;
+        }
+        else{
+            result+=char;
+        }
+    }
+
+    return result;
+}
+
+/* =====================
+   Rail Fence Cipher
+===================== */
+
+function railFenceEncrypt(text,rails){
+
+    rails=parseInt(rails);
+
+    if(rails<2) return text;
+
+    let fence=Array.from(
+        {length:rails},
+        ()=>[]
+    );
+
+    let row=0;
+    let dir=1;
+
+    for(let ch of text){
+
+        fence[row].push(ch);
+
+        row+=dir;
+
+        if(row===0 || row===rails-1)
+            dir*=-1;
+    }
+
+    return fence.flat().join('');
+}
+
+function railFenceDecrypt(cipher,rails){
+
+    rails=parseInt(rails);
+
+    if(rails<2) return cipher;
+
+    let pattern=[];
+    let row=0;
+    let dir=1;
+
+    for(let i=0;i<cipher.length;i++){
+
+        pattern.push(row);
+
+        row+=dir;
+
+        if(row===0 || row===rails-1)
+            dir*=-1;
+    }
+
+    let counts=new Array(rails).fill(0);
+
+    pattern.forEach(r=>counts[r]++);
+
+    let railsArr=[];
+    let idx=0;
+
+    for(let r=0;r<rails;r++){
+        railsArr[r]=cipher.slice(
+            idx,
+            idx+counts[r]
+        ).split('');
+        idx+=counts[r];
+    }
+
+    let result="";
+
+    for(let p of pattern){
+        result+=railsArr[p].shift();
+    }
+
+    return result;
+}
+
+/* =====================
+   Atbash Cipher
+===================== */
+
+function atbash(text){
+
+    return text.replace(/[A-Za-z]/g,ch=>{
+
+        let isUpper=ch===ch.toUpperCase();
+
+        let code=ch.toUpperCase().charCodeAt(0)-65;
+
+        let mapped=String.fromCharCode(
+            90-code
+        );
+
+        return isUpper
+            ? mapped
+            : mapped.toLowerCase();
+    });
+}
+
+/* =====================
+   Main Processor
+===================== */
+
+function process(mode){
+
+    const cipher=
+        document.getElementById("cipher").value;
+
+    const key=
+        document.getElementById("key").value;
+
+    const input=
+        document.getElementById("input").value;
+
+    let result="";
+
+    switch(cipher){
+
+        case "Caesar Cipher":
+            result=caesar(
+                input,
+                mode==="encrypt"
+                ? Number(key)
+                : -Number(key)
+            );
+            break;
+
+        case "Monoalphabetic Cipher":
+            result=mode==="encrypt"
+                ? monoEncrypt(input,key)
+                : monoDecrypt(input,key);
+            break;
+
+        case "Vigenere Cipher":
+            result=vigenere(input,key,mode);
+            break;
+
+        case "Rail Fence Cipher":
+            result=mode==="encrypt"
+                ? railFenceEncrypt(input,key)
+                : railFenceDecrypt(input,key);
+            break;
+
+        case "Atbash Cipher":
+            result=atbash(input);
+            break;
+    }
+
+    document.getElementById("output").value=result;
+}
+
+/* =====================
+   Copy
+===================== */
+
+function copyResult(){
+
+    const output=
+    document.getElementById("output");
+
+    output.select();
+
+    document.execCommand("copy");
+
+    alert("Copied!");
+}
+
+</script>
+
+</body>
+</html>
